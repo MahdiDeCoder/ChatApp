@@ -19,7 +19,16 @@
       <ul id="results"></ul>
     </div>
     <div id="chat" style="display:none;">
-      <h3 id="chatWith" style="cursor:pointer;"></h3>
+      <div id="chatHeader">
+        <button id="backBtn" class="back-btn">Back</button>
+        <div id="chatUserInfo">
+          <img id="chatAvatar" class="avatar" />
+          <div>
+            <div id="chatName"></div>
+            <div id="chatStatus" class="chat-status"></div>
+          </div>
+        </div>
+      </div>
       <div id="messages"></div>
       <div id="inputArea">
         <input id="messageInput" placeholder="Type a message" />

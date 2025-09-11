@@ -55,10 +55,12 @@ app.post('/login', (req, res) => {
   let users = readJSON(USERS_FILE);
   let user = users.find(u => u.username === username);
   if (!user) {
-    user = { username, createdAt: Date.now(), about: '', avatar: null };
+    user = { username, createdAt: Date.now(), about: '', avatar: null, lastSeen: Date.now(), online: true };
     users.push(user);
-    writeJSON(USERS_FILE, users);
+  } else {
+    user.online = true;
   }
+  writeJSON(USERS_FILE, users);
   res.redirect('/chat.html');
 });
 
@@ -97,6 +99,17 @@ app.get('/conversations', requireLogin, (req, res) => {
 
 const userSockets = new Map(); // username -> socket
 
+function updateStatus(username, online) {
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.username === username);
+  if (user) {
+    user.online = online;
+    if (!online) user.lastSeen = Date.now();
+    writeJSON(USERS_FILE, users);
+  }
+  return user;
+}
+
 io.use((socket, next) => {
   const req = socket.request;
   const sess = req.headers.cookie;
@@ -114,6 +127,8 @@ io.on('connection', socket => {
     return;
   }
   userSockets.set(username, socket);
+  const statusUser = updateStatus(username, true);
+  io.emit('presence', { username, online: true, lastSeen: statusUser ? statusUser.lastSeen : Date.now() });
 
   // Mark any offline messages as delivered upon connection
   const offline = readJSON(MESSAGES_FILE);
@@ -130,6 +145,8 @@ io.on('connection', socket => {
 
   socket.on('disconnect', () => {
     userSockets.delete(username);
+    const u = updateStatus(username, false);
+    io.emit('presence', { username, online: false, lastSeen: u ? u.lastSeen : Date.now() });
   });
 
   socket.on('message', data => {
@@ -178,7 +195,7 @@ app.get('/profile/:user?', requireLogin, (req, res) => {
   const users = readJSON(USERS_FILE);
   const user = users.find(u => u.username === username);
   if (!user) return res.status(404).json({});
-  res.json({ username: user.username, createdAt: user.createdAt, about: user.about, avatar: user.avatar });
+  res.json({ username: user.username, createdAt: user.createdAt, about: user.about, avatar: user.avatar, lastSeen: user.lastSeen, online: user.online });
 });
 
 app.post('/profile', requireLogin, (req, res) => {

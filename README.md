@@ -10,6 +10,7 @@ Simple chat application with login, user search, text and file messaging, emojis
 - Real-time delivery (✔) and read (✔✔) receipts
 - Live notifications for incoming messages
 - Conversation list showing past contacts
+- Online status with last-seen timestamps
 - Timestamps under each message
 - User profiles with avatar and bio
 - Profile picture shown in chat and clickable profiles to view details

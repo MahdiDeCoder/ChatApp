@@ -8,6 +8,11 @@ const resultsUl = document.getElementById('results');
 const notificationsDiv = document.getElementById('notifications');
 const conversationsUl = document.getElementById('conversations');
 const myAvatar = document.getElementById('myAvatar');
+const convoListDiv = document.getElementById('convoList');
+const searchDiv = document.getElementById('search');
+const chatNameEl = document.getElementById('chatName');
+const chatStatusEl = document.getElementById('chatStatus');
+const chatAvatarEl = document.getElementById('chatAvatar');
 const unread = {};
 
 async function init() {
@@ -22,6 +27,7 @@ async function init() {
   socket = io(SERVER_URL, { extraHeaders: { 'x-username': username } });
   socket.on('message', onMessage);
   socket.on('status', onStatus);
+  socket.on('presence', onPresence);
 
   const convRes = await fetch(`${SERVER_URL}/conversations`);
   const convos = await convRes.json();
@@ -125,12 +131,14 @@ function startChat(user) {
   addConversation(user);
   currentChat = user;
   chatDiv.style.display = 'block';
-  const chatWith = document.getElementById('chatWith');
-  chatWith.textContent = 'Chat with ' + user;
+  convoListDiv.style.display = 'none';
+  searchDiv.style.display = 'none';
+  chatNameEl.textContent = user;
   const note = document.getElementById('note-' + user);
   if (note) notificationsDiv.removeChild(note);
   delete unread[user];
   loadMessages(user);
+  loadProfileForChat(user);
 }
 
 document.getElementById('sendBtn').onclick = sendMessage;
@@ -177,8 +185,13 @@ document.querySelectorAll('.emoji').forEach(e => {
   };
 });
 
-document.getElementById('chatWith').onclick = () => {
-  if (currentChat) showProfile(currentChat);
+chatNameEl.onclick = () => { if (currentChat) showProfile(currentChat); };
+chatAvatarEl.onclick = () => { if (currentChat) showProfile(currentChat); };
+document.getElementById('backBtn').onclick = () => {
+  chatDiv.style.display = 'none';
+  convoListDiv.style.display = 'block';
+  searchDiv.style.display = 'block';
+  currentChat = null;
 };
 
 document.getElementById('closeProfile').onclick = () => {
@@ -195,6 +208,25 @@ async function showProfile(user) {
   if (data.avatar) document.getElementById('overlayAvatar').src = SERVER_URL + data.avatar;
   else document.getElementById('overlayAvatar').src = '';
   document.getElementById('profileOverlay').style.display = 'flex';
+}
+
+async function loadProfileForChat(user) {
+  const res = await fetch(`${SERVER_URL}/profile/${user}`);
+  if (res.status !== 200) return;
+  const data = await res.json();
+  if (data.avatar) chatAvatarEl.src = SERVER_URL + data.avatar; else chatAvatarEl.src = '';
+  updateStatusText(data);
+}
+
+function onPresence(p) {
+  if (p.username === currentChat) updateStatusText(p);
+}
+
+function updateStatusText(p) {
+  if (!chatStatusEl) return;
+  if (p.online) chatStatusEl.textContent = 'Online';
+  else if (p.lastSeen) chatStatusEl.textContent = 'Last seen ' + new Date(p.lastSeen).toLocaleString();
+  else chatStatusEl.textContent = '';
 }
 
 init();
