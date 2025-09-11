@@ -1,19 +1,20 @@
 let username = '';
 let socket = null;
 let currentChat = null;
+const SERVER_URL = 'http://localhost:3000';
 const messagesDiv = document.getElementById('messages');
 const chatDiv = document.getElementById('chat');
 const resultsUl = document.getElementById('results');
 
 async function init() {
-  const res = await fetch('/me');
+  const res = await fetch(`${SERVER_URL}/me`);
   if (res.status !== 200) {
-    window.location = '/login.html';
+    window.location = `${SERVER_URL}/login.html`;
     return;
   }
   const data = await res.json();
   username = data.username;
-  socket = io({ extraHeaders: { 'x-username': username } });
+  socket = io(SERVER_URL, { extraHeaders: { 'x-username': username } });
   socket.on('message', onMessage);
   socket.on('status', onStatus);
 }
@@ -39,7 +40,7 @@ function appendMessage(msg) {
   if (msg.type === 'text') {
     div.innerHTML = `<span>${msg.content}</span>`;
   } else if (msg.type === 'file') {
-    div.innerHTML = `<a href="${msg.file}" target="_blank">${msg.filename}</a>`;
+    div.innerHTML = `<a href="${SERVER_URL}${msg.file}" target="_blank">${msg.filename}</a>`;
   }
   if (msg.from === username) {
     const status = document.createElement('span');
@@ -53,7 +54,7 @@ function appendMessage(msg) {
 
 async function loadMessages(user) {
   messagesDiv.innerHTML = '';
-  const res = await fetch('/messages/' + user);
+  const res = await fetch(`${SERVER_URL}/messages/${user}`);
   const msgs = await res.json();
   msgs.forEach(m => appendMessage(m));
   const unreadIds = msgs.filter(m => m.to === username && m.status !== 'read').map(m => m.id);
@@ -62,7 +63,7 @@ async function loadMessages(user) {
 
 document.getElementById('searchBtn').onclick = async () => {
   const val = document.getElementById('searchBox').value;
-  const res = await fetch('/users?search=' + encodeURIComponent(val));
+  const res = await fetch(`${SERVER_URL}/users?search=` + encodeURIComponent(val));
   const users = await res.json();
   resultsUl.innerHTML = '';
   users.forEach(u => {
