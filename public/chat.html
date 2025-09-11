@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>ChatApp</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app">
+    <div id="search">
+      <input id="searchBox" placeholder="Search users" />
+      <button id="searchBtn">Search</button>
+      <ul id="results"></ul>
+    </div>
+    <div id="chat" style="display:none;">
+      <h3 id="chatWith"></h3>
+      <div id="messages"></div>
+      <div id="inputArea">
+        <input id="messageInput" placeholder="Type a message" />
+        <button id="emojiBtn">😀</button>
+        <input type="file" id="fileInput" />
+        <button id="sendBtn">Send</button>
+      </div>
+      <div id="emojiPanel" style="display:none;">
+        <span class="emoji">😀</span><span class="emoji">😂</span><span class="emoji">👍</span><span class="emoji">❤️</span>
+      </div>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/main.js"></script>
+</body>
+</html>

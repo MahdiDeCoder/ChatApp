@@ -1,0 +1,127 @@
+let username = '';
+let socket = null;
+let currentChat = null;
+const messagesDiv = document.getElementById('messages');
+const chatDiv = document.getElementById('chat');
+const resultsUl = document.getElementById('results');
+
+async function init() {
+  const res = await fetch('/me');
+  if (res.status !== 200) {
+    window.location = '/login.html';
+    return;
+  }
+  const data = await res.json();
+  username = data.username;
+  socket = io({ extraHeaders: { 'x-username': username } });
+  socket.on('message', onMessage);
+  socket.on('status', onStatus);
+}
+
+function onMessage(msg) {
+  appendMessage(msg);
+  socket.emit('read', { ids: [msg.id] });
+}
+
+function onStatus(update) {
+  const el = document.getElementById('msg-' + update.id);
+  if (el) {
+    const statusSpan = el.querySelector('.status');
+    if (update.status === 'delivered') statusSpan.textContent = '✔';
+    if (update.status === 'read') statusSpan.textContent = '✔✔';
+  }
+}
+
+function appendMessage(msg) {
+  const div = document.createElement('div');
+  div.className = 'message ' + (msg.from === username ? 'sent' : 'received');
+  div.id = 'msg-' + msg.id;
+  if (msg.type === 'text') {
+    div.innerHTML = `<span>${msg.content}</span>`;
+  } else if (msg.type === 'file') {
+    div.innerHTML = `<a href="${msg.file}" target="_blank">${msg.filename}</a>`;
+  }
+  if (msg.from === username) {
+    const status = document.createElement('span');
+    status.className = 'status';
+    status.textContent = msg.status === 'read' ? '✔✔' : msg.status === 'delivered' ? '✔' : '';
+    div.appendChild(status);
+  }
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+async function loadMessages(user) {
+  messagesDiv.innerHTML = '';
+  const res = await fetch('/messages/' + user);
+  const msgs = await res.json();
+  msgs.forEach(m => appendMessage(m));
+  const unreadIds = msgs.filter(m => m.to === username && m.status !== 'read').map(m => m.id);
+  if (unreadIds.length) socket.emit('read', { ids: unreadIds });
+}
+
+document.getElementById('searchBtn').onclick = async () => {
+  const val = document.getElementById('searchBox').value;
+  const res = await fetch('/users?search=' + encodeURIComponent(val));
+  const users = await res.json();
+  resultsUl.innerHTML = '';
+  users.forEach(u => {
+    const li = document.createElement('li');
+    li.textContent = u;
+    li.onclick = () => startChat(u);
+    resultsUl.appendChild(li);
+  });
+};
+
+function startChat(user) {
+  currentChat = user;
+  chatDiv.style.display = 'block';
+  document.getElementById('chatWith').textContent = 'Chat with ' + user;
+  loadMessages(user);
+}
+
+document.getElementById('sendBtn').onclick = sendMessage;
+document.getElementById('messageInput').addEventListener('keypress', e => {
+  if (e.key === 'Enter') sendMessage();
+});
+
+function sendMessage() {
+  if (!currentChat) return;
+  const input = document.getElementById('messageInput');
+  const content = input.value.trim();
+  if (content) {
+    const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'text', content, status: '' };
+    appendMessage(msg);
+    socket.emit('message', { to: currentChat, content, type: 'text' });
+    input.value = '';
+  }
+  const fileInput = document.getElementById('fileInput');
+  const file = fileInput.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64 = e.target.result.split(',')[1];
+      const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'file', filename: file.name, file: '#', status: '' };
+      appendMessage(msg);
+      socket.emit('message', { to: currentChat, type: 'file', filename: file.name, fileData: base64 });
+    };
+    reader.readAsDataURL(file);
+    fileInput.value = '';
+  }
+}
+
+document.getElementById('emojiBtn').onclick = () => {
+  const panel = document.getElementById('emojiPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+};
+
+document.querySelectorAll('.emoji').forEach(e => {
+  e.onclick = () => {
+    const input = document.getElementById('messageInput');
+    input.value += e.textContent;
+    document.getElementById('emojiPanel').style.display = 'none';
+    input.focus();
+  };
+});
+
+init();
