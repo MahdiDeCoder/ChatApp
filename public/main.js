@@ -5,6 +5,8 @@ const SERVER_URL = 'http://localhost:3000';
 const messagesDiv = document.getElementById('messages');
 const chatDiv = document.getElementById('chat');
 const resultsUl = document.getElementById('results');
+const notificationsDiv = document.getElementById('notifications');
+const unread = {};
 
 async function init() {
   const res = await fetch(`${SERVER_URL}/me`);
@@ -20,8 +22,14 @@ async function init() {
 }
 
 function onMessage(msg) {
-  appendMessage(msg);
-  socket.emit('read', { ids: [msg.id] });
+  if (msg.from === currentChat) {
+    appendMessage(msg);
+    socket.emit('read', { ids: [msg.id] });
+  } else {
+    if (!unread[msg.from]) unread[msg.from] = [];
+    unread[msg.from].push(msg);
+    showNotification(msg);
+  }
 }
 
 function onStatus(update) {
@@ -31,6 +39,19 @@ function onStatus(update) {
     if (update.status === 'delivered') statusSpan.textContent = '✔';
     if (update.status === 'read') statusSpan.textContent = '✔✔';
   }
+}
+
+function showNotification(msg) {
+  let note = document.getElementById('note-' + msg.from);
+  const preview = msg.type === 'text' ? msg.content : `[File] ${msg.filename}`;
+  if (!note) {
+    note = document.createElement('div');
+    note.id = 'note-' + msg.from;
+    note.className = 'notification';
+    note.onclick = () => startChat(msg.from);
+    notificationsDiv.appendChild(note);
+  }
+  note.textContent = `New message from ${msg.from}: ${preview}`;
 }
 
 function appendMessage(msg) {
@@ -78,6 +99,9 @@ function startChat(user) {
   currentChat = user;
   chatDiv.style.display = 'block';
   document.getElementById('chatWith').textContent = 'Chat with ' + user;
+  const note = document.getElementById('note-' + user);
+  if (note) notificationsDiv.removeChild(note);
+  delete unread[user];
   loadMessages(user);
 }
 

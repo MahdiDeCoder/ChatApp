@@ -1,11 +1,107 @@
-body { font-family: Arial, sans-serif; }
-.login-container { width: 300px; margin: 100px auto; text-align: center; }
-#search { margin-bottom: 20px; }
-#messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px; }
-.message { margin: 5px; padding: 5px 10px; border-radius: 5px; }
-.message.sent { background: #dcf8c6; text-align: right; }
-.message.received { background: #eee; text-align: left; }
-.status { margin-left: 5px; font-size: 0.8em; color: #555; }
-#inputArea { margin-top: 10px; }
-#emojiPanel { border: 1px solid #ccc; padding: 5px; }
-.emoji { cursor: pointer; padding: 2px; }
+:root {
+  --primary: #ff9800;
+  --secondary: #1976d2;
+  --light-primary: #ffe0b2;
+  --light-secondary: #bbdefb;
+  --bg: #f5f5f5;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  margin: 0;
+}
+
+button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: var(--secondary);
+}
+
+input[type="text"],
+input[type="file"] {
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.login-container {
+  width: 300px;
+  margin: 100px auto;
+  text-align: center;
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.login-container h2 {
+  color: var(--secondary);
+}
+
+#search {
+  margin-bottom: 20px;
+}
+
+#notifications .notification {
+  background: var(--secondary);
+  color: #fff;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#messages {
+  border: 1px solid #ccc;
+  height: 300px;
+  overflow-y: scroll;
+  padding: 10px;
+  background: #fff;
+}
+
+.message {
+  margin: 5px;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+.message.sent {
+  background: var(--light-secondary);
+  text-align: right;
+}
+
+.message.received {
+  background: var(--light-primary);
+  text-align: left;
+}
+
+.status {
+  margin-left: 5px;
+  font-size: 0.8em;
+  color: #555;
+}
+
+#inputArea {
+  margin-top: 10px;
+}
+
+#emojiPanel {
+  border: 1px solid #ccc;
+  padding: 5px;
+  background: #fff;
+}
+
+.emoji {
+  cursor: pointer;
+  padding: 2px;
+}
+

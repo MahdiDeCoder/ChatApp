@@ -7,6 +7,7 @@ Simple chat application with login, user search, text and file messaging, emojis
 - Search users by username
 - Real-time chat with text, files, and emojis
 - Delivery (✔) and read (✔✔) receipts
+- Live notifications for incoming messages
 - Persistent storage of users and messages
 
 ## Setup
