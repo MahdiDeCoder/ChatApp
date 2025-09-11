@@ -31,6 +31,11 @@ app.use(session({ secret: 'secret-key', resave: false, saveUninitialized: true }
 app.use('/uploads', express.static(UPLOAD_DIR));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Redirect root to login page
+app.get('/', (req, res) => {
+  res.redirect('/login.html');
+});
+
 // Helper to ensure user is logged in
 function requireLogin(req, res, next) {
   if (!req.session.username) return res.redirect('/login.html');

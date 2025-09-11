@@ -18,7 +18,7 @@ Simple chat application with login, user search, text and file messaging, emojis
    ```bash
    npm start
    ```
-3. The server binds to `localhost:3000`. Open <http://localhost:3000/login.html> in a browser to use the app.
+3. The server binds to `localhost:3000`. Open <http://localhost:3000/> in a browser to use the app (you'll be redirected to the login page).
 4. Login with a username, search for another user, and start chatting.
 
 If you need to point the client to a different server, update `SERVER_URL` in `public/main.js` and the asset URLs in `public/*.html`.
