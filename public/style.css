@@ -60,6 +60,23 @@ input[type="file"] {
   cursor: pointer;
 }
 
+#convoList {
+  margin-bottom: 20px;
+}
+
+#conversations li {
+  list-style: none;
+  background: #fff;
+  margin-bottom: 5px;
+  padding: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#conversations li:hover {
+  background: var(--light-secondary);
+}
+
 #messages {
   border: 1px solid #ccc;
   height: 300px;

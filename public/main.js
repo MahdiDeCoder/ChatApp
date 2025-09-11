@@ -6,6 +6,7 @@ const messagesDiv = document.getElementById('messages');
 const chatDiv = document.getElementById('chat');
 const resultsUl = document.getElementById('results');
 const notificationsDiv = document.getElementById('notifications');
+const conversationsUl = document.getElementById('conversations');
 const unread = {};
 
 async function init() {
@@ -19,6 +20,10 @@ async function init() {
   socket = io(SERVER_URL, { extraHeaders: { 'x-username': username } });
   socket.on('message', onMessage);
   socket.on('status', onStatus);
+
+  const convRes = await fetch(`${SERVER_URL}/conversations`);
+  const convos = await convRes.json();
+  convos.forEach(addConversation);
 }
 
 function onMessage(msg) {
@@ -42,6 +47,7 @@ function onStatus(update) {
 }
 
 function showNotification(msg) {
+  addConversation(msg.from);
   let note = document.getElementById('note-' + msg.from);
   const preview = msg.type === 'text' ? msg.content : `[File] ${msg.filename}`;
   if (!note) {
@@ -52,6 +58,15 @@ function showNotification(msg) {
     notificationsDiv.appendChild(note);
   }
   note.textContent = `New message from ${msg.from}: ${preview}`;
+}
+
+function addConversation(user) {
+  if (document.getElementById('conv-' + user)) return;
+  const li = document.createElement('li');
+  li.id = 'conv-' + user;
+  li.textContent = user;
+  li.onclick = () => startChat(user);
+  conversationsUl.appendChild(li);
 }
 
 function appendMessage(msg) {
@@ -96,6 +111,7 @@ document.getElementById('searchBtn').onclick = async () => {
 };
 
 function startChat(user) {
+  addConversation(user);
   currentChat = user;
   chatDiv.style.display = 'block';
   document.getElementById('chatWith').textContent = 'Chat with ' + user;

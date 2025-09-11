@@ -72,6 +72,17 @@ app.get('/messages/:withUser', requireLogin, (req, res) => {
   res.json(messages);
 });
 
+app.get('/conversations', requireLogin, (req, res) => {
+  const username = req.session.username;
+  const messages = readJSON(MESSAGES_FILE);
+  const users = new Set();
+  messages.forEach(m => {
+    if (m.from === username) users.add(m.to);
+    if (m.to === username) users.add(m.from);
+  });
+  res.json(Array.from(users));
+});
+
 const userSockets = new Map(); // username -> socket
 
 io.use((socket, next) => {
