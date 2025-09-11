@@ -4,9 +4,10 @@ Simple chat application with login, user search, text and file messaging, emojis
 
 ## Features
 - Login with username
+- Login required to access chat and uploads
 - Search users by username
-- Real-time chat with text, files, and emojis
-- Delivery (✔) and read (✔✔) receipts
+- Real-time chat with text, images/files, and emojis
+- Real-time delivery (✔) and read (✔✔) receipts
 - Live notifications for incoming messages
 - Conversation list showing past contacts
 - Persistent storage of users and messages

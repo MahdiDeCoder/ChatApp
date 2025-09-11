@@ -28,9 +28,6 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(session({ secret: 'secret-key', resave: false, saveUninitialized: true }));
 
-app.use('/uploads', express.static(UPLOAD_DIR));
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Redirect root to login page
 app.get('/', (req, res) => {
   res.redirect('/login.html');
@@ -41,6 +38,15 @@ function requireLogin(req, res, next) {
   if (!req.session.username) return res.redirect('/login.html');
   next();
 }
+
+// Serve chat page only if logged in
+app.get('/chat.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+});
+// Assets for login page
+app.use(express.static(path.join(__dirname, 'public')));
+// Protect uploaded files
+app.use('/uploads', requireLogin, express.static(UPLOAD_DIR));
 
 app.post('/login', (req, res) => {
   const { username } = req.body;
@@ -103,12 +109,25 @@ io.on('connection', socket => {
   }
   userSockets.set(username, socket);
 
+  // Mark any offline messages as delivered upon connection
+  const offline = readJSON(MESSAGES_FILE);
+  let offlineChanged = false;
+  offline.forEach(m => {
+    if (m.to === username && m.status === 'sent') {
+      m.status = 'delivered';
+      offlineChanged = true;
+      const fromSocket = userSockets.get(m.from);
+      if (fromSocket) fromSocket.emit('status', { id: m.id, status: 'delivered' });
+    }
+  });
+  if (offlineChanged) writeJSON(MESSAGES_FILE, offline);
+
   socket.on('disconnect', () => {
     userSockets.delete(username);
   });
 
   socket.on('message', data => {
-    const { to, content, type, filename, fileData } = data;
+    const { to, content, type, filename, fileData, fileType } = data;
     const from = username;
     let filePath = null;
     if (type === 'file' && fileData) {
@@ -117,7 +136,7 @@ io.on('connection', socket => {
       fs.writeFileSync(filePath, Buffer.from(fileData, 'base64'));
     }
     const id = uuidv4();
-    const msg = { id, from, to, type, content, filename, file: filePath ? '/uploads/' + path.basename(filePath) : null, timestamp: Date.now(), status: 'sent' };
+    const msg = { id, from, to, type, content, filename, fileType, file: filePath ? '/uploads/' + path.basename(filePath) : null, timestamp: Date.now(), status: 'sent' };
     const messages = readJSON(MESSAGES_FILE);
     messages.push(msg);
     writeJSON(MESSAGES_FILE, messages);

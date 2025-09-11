@@ -107,6 +107,13 @@ input[type="file"] {
   color: #555;
 }
 
+.message img {
+  max-width: 200px;
+  max-height: 200px;
+  display: block;
+  border-radius: 4px;
+}
+
 #inputArea {
   margin-top: 10px;
 }

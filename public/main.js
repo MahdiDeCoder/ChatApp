@@ -76,7 +76,12 @@ function appendMessage(msg) {
   if (msg.type === 'text') {
     div.innerHTML = `<span>${msg.content}</span>`;
   } else if (msg.type === 'file') {
-    div.innerHTML = `<a href="${SERVER_URL}${msg.file}" target="_blank">${msg.filename}</a>`;
+    const fileSrc = msg.file && !msg.file.startsWith('data:') ? `${SERVER_URL}${msg.file}` : msg.file;
+    if (msg.fileType && msg.fileType.startsWith('image/')) {
+      div.innerHTML = `<img src="${fileSrc}" alt="${msg.filename}" />`;
+    } else {
+      div.innerHTML = `<a href="${fileSrc}" target="_blank">${msg.filename}</a>`;
+    }
   }
   if (msg.from === username) {
     const status = document.createElement('span');
@@ -142,9 +147,9 @@ function sendMessage() {
     const reader = new FileReader();
     reader.onload = function(e) {
       const base64 = e.target.result.split(',')[1];
-      const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'file', filename: file.name, file: '#', status: '' };
+      const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'file', filename: file.name, fileType: file.type, file: e.target.result, status: '' };
       appendMessage(msg);
-      socket.emit('message', { to: currentChat, type: 'file', filename: file.name, fileData: base64 });
+      socket.emit('message', { to: currentChat, type: 'file', filename: file.name, fileType: file.type, fileData: base64 });
     };
     reader.readAsDataURL(file);
     fileInput.value = '';
