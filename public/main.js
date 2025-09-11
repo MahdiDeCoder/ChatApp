@@ -7,6 +7,7 @@ const chatDiv = document.getElementById('chat');
 const resultsUl = document.getElementById('results');
 const notificationsDiv = document.getElementById('notifications');
 const conversationsUl = document.getElementById('conversations');
+const myAvatar = document.getElementById('myAvatar');
 const unread = {};
 
 async function init() {
@@ -17,6 +18,7 @@ async function init() {
   }
   const data = await res.json();
   username = data.username;
+  if (data.avatar) myAvatar.src = SERVER_URL + data.avatar;
   socket = io(SERVER_URL, { extraHeaders: { 'x-username': username } });
   socket.on('message', onMessage);
   socket.on('status', onStatus);
@@ -89,6 +91,10 @@ function appendMessage(msg) {
     status.textContent = msg.status === 'read' ? '✔✔' : msg.status === 'delivered' ? '✔' : '';
     div.appendChild(status);
   }
+  const time = document.createElement('div');
+  time.className = 'time';
+  time.textContent = new Date(msg.timestamp || Date.now()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  div.appendChild(time);
   messagesDiv.appendChild(div);
   messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
@@ -119,7 +125,8 @@ function startChat(user) {
   addConversation(user);
   currentChat = user;
   chatDiv.style.display = 'block';
-  document.getElementById('chatWith').textContent = 'Chat with ' + user;
+  const chatWith = document.getElementById('chatWith');
+  chatWith.textContent = 'Chat with ' + user;
   const note = document.getElementById('note-' + user);
   if (note) notificationsDiv.removeChild(note);
   delete unread[user];
@@ -136,7 +143,7 @@ function sendMessage() {
   const input = document.getElementById('messageInput');
   const content = input.value.trim();
   if (content) {
-    const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'text', content, status: '' };
+    const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'text', content, timestamp: Date.now(), status: '' };
     appendMessage(msg);
     socket.emit('message', { to: currentChat, content, type: 'text' });
     input.value = '';
@@ -147,7 +154,7 @@ function sendMessage() {
     const reader = new FileReader();
     reader.onload = function(e) {
       const base64 = e.target.result.split(',')[1];
-      const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'file', filename: file.name, fileType: file.type, file: e.target.result, status: '' };
+      const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'file', filename: file.name, fileType: file.type, file: e.target.result, timestamp: Date.now(), status: '' };
       appendMessage(msg);
       socket.emit('message', { to: currentChat, type: 'file', filename: file.name, fileType: file.type, fileData: base64 });
     };
@@ -169,5 +176,25 @@ document.querySelectorAll('.emoji').forEach(e => {
     input.focus();
   };
 });
+
+document.getElementById('chatWith').onclick = () => {
+  if (currentChat) showProfile(currentChat);
+};
+
+document.getElementById('closeProfile').onclick = () => {
+  document.getElementById('profileOverlay').style.display = 'none';
+};
+
+async function showProfile(user) {
+  const res = await fetch(`${SERVER_URL}/profile/${user}`);
+  if (res.status !== 200) return;
+  const data = await res.json();
+  document.getElementById('overlayName').textContent = data.username;
+  document.getElementById('overlayAbout').textContent = data.about || '';
+  document.getElementById('overlayCreated').textContent = 'Joined: ' + new Date(data.createdAt).toLocaleString();
+  if (data.avatar) document.getElementById('overlayAvatar').src = SERVER_URL + data.avatar;
+  else document.getElementById('overlayAvatar').src = '';
+  document.getElementById('profileOverlay').style.display = 'flex';
+}
 
 init();

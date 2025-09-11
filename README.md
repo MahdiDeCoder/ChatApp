@@ -10,6 +10,9 @@ Simple chat application with login, user search, text and file messaging, emojis
 - Real-time delivery (✔) and read (✔✔) receipts
 - Live notifications for incoming messages
 - Conversation list showing past contacts
+- Timestamps under each message
+- User profiles with avatar and bio
+- Profile picture shown in chat and clickable profiles to view details
 - Persistent storage of users and messages
 
 ## Setup
@@ -22,7 +25,7 @@ Simple chat application with login, user search, text and file messaging, emojis
    npm start
    ```
 3. The server binds to `localhost:3000`. Open <http://localhost:3000/> in a browser to use the app (you'll be redirected to the login page).
-4. Login with a username, search for another user, and start chatting.
+4. Login with a username, optionally update your profile (click your avatar), search for another user, and start chatting.
 
 If you need to point the client to a different server, update `SERVER_URL` in `public/main.js` and the asset URLs in `public/*.html`.
 

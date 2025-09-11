@@ -52,9 +52,11 @@ app.post('/login', (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).send('Username required');
   req.session.username = username;
-  const users = readJSON(USERS_FILE);
-  if (!users.includes(username)) {
-    users.push(username);
+  let users = readJSON(USERS_FILE);
+  let user = users.find(u => u.username === username);
+  if (!user) {
+    user = { username, createdAt: Date.now(), about: '', avatar: null };
+    users.push(user);
     writeJSON(USERS_FILE, users);
   }
   res.redirect('/chat.html');
@@ -62,12 +64,16 @@ app.post('/login', (req, res) => {
 
 app.get('/me', (req, res) => {
   if (!req.session.username) return res.status(401).json({});
-  res.json({ username: req.session.username });
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.username === req.session.username);
+  res.json({ username: req.session.username, avatar: user ? user.avatar : null });
 });
 
 app.get('/users', requireLogin, (req, res) => {
   const search = (req.query.search || '').toLowerCase();
-  const users = readJSON(USERS_FILE).filter(u => u.toLowerCase().includes(search) && u !== req.session.username);
+  const users = readJSON(USERS_FILE)
+    .filter(u => u.username.toLowerCase().includes(search) && u.username !== req.session.username)
+    .map(u => u.username);
   res.json(users);
 });
 
@@ -165,6 +171,30 @@ io.on('connection', socket => {
     });
     if (changed) writeJSON(MESSAGES_FILE, messages);
   });
+});
+
+app.get('/profile/:user?', requireLogin, (req, res) => {
+  const username = req.params.user || req.session.username;
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.username === username);
+  if (!user) return res.status(404).json({});
+  res.json({ username: user.username, createdAt: user.createdAt, about: user.about, avatar: user.avatar });
+});
+
+app.post('/profile', requireLogin, (req, res) => {
+  const { about, avatarData, avatarName } = req.body;
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.username === req.session.username);
+  if (!user) return res.status(404).send('User not found');
+  if (typeof about === 'string') user.about = about;
+  if (avatarData && avatarName) {
+    const safeName = Date.now() + '_' + avatarName;
+    const filePath = path.join(UPLOAD_DIR, safeName);
+    fs.writeFileSync(filePath, Buffer.from(avatarData, 'base64'));
+    user.avatar = '/uploads/' + path.basename(filePath);
+  }
+  writeJSON(USERS_FILE, users);
+  res.json({ success: true, avatar: user.avatar, about: user.about });
 });
 
 const PORT = process.env.PORT || 3000;

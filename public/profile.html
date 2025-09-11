@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>My Profile</title>
+  <link rel="stylesheet" href="http://localhost:3000/style.css" />
+</head>
+<body>
+  <div class="profile-container">
+    <h2>My Profile</h2>
+    <img id="currentAvatar" class="avatar-large" />
+    <form id="profileForm">
+      <input type="text" id="about" placeholder="About me" />
+      <input type="file" id="avatarInput" />
+      <button type="submit">Save</button>
+    </form>
+    <button onclick="location.href='chat.html'">Back to chat</button>
+  </div>
+  <script src="http://localhost:3000/profile.js"></script>
+</body>
+</html>

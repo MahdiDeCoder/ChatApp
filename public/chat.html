@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="http://localhost:3000/style.css" />
 </head>
 <body>
+  <img id="myAvatar" class="avatar" onclick="location.href='profile.html'" />
   <div id="app">
     <div id="notifications"></div>
     <div id="convoList">
@@ -18,7 +19,7 @@
       <ul id="results"></ul>
     </div>
     <div id="chat" style="display:none;">
-      <h3 id="chatWith"></h3>
+      <h3 id="chatWith" style="cursor:pointer;"></h3>
       <div id="messages"></div>
       <div id="inputArea">
         <input id="messageInput" placeholder="Type a message" />
@@ -27,8 +28,17 @@
         <button id="sendBtn">Send</button>
       </div>
       <div id="emojiPanel" style="display:none;">
-        <span class="emoji">😀</span><span class="emoji">😂</span><span class="emoji">👍</span><span class="emoji">❤️</span>
+        <span class="emoji">😀</span><span class="emoji">😂</span><span class="emoji">👍</span><span class="emoji">❤️</span><span class="emoji">😢</span><span class="emoji">😮</span><span class="emoji">😡</span><span class="emoji">😍</span><span class="emoji">🙏</span><span class="emoji">🎉</span><span class="emoji">😎</span><span class="emoji">🤔</span>
       </div>
+    </div>
+  </div>
+  <div id="profileOverlay">
+    <div id="profileCard">
+      <img id="overlayAvatar" class="avatar-large" />
+      <h3 id="overlayName"></h3>
+      <p id="overlayAbout"></p>
+      <p id="overlayCreated"></p>
+      <button id="closeProfile">Close</button>
     </div>
   </div>
   <script src="http://localhost:3000/socket.io/socket.io.js"></script>
