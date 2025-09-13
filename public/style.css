@@ -87,17 +87,26 @@ input[type="file"] {
   margin-bottom: 20px;
 }
 
-#conversations li {
+#conversations li,
+#results li {
   list-style: none;
   background: #fff;
   margin-bottom: 5px;
   padding: 5px;
   border-radius: 4px;
-  cursor: pointer;
+  display: flex;
+  align-items: center;
 }
 
-#conversations li:hover {
+#conversations li:hover,
+#results li:hover {
   background: var(--light-secondary);
+}
+
+#conversations li .user-name,
+#results li .user-name {
+  flex: 1;
+  cursor: pointer;
 }
 
 #messages {
@@ -237,5 +246,20 @@ input[type="file"] {
   padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.profile-btn {
+  background: var(--secondary);
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 0.8rem;
+}
+
+.profile-btn:hover {
+  background: var(--primary);
 }
 

@@ -5,9 +5,8 @@ async function loadProfile() {
   if (res.status === 200) {
     const data = await res.json();
     document.getElementById('about').value = data.about || '';
-    if (data.avatar) {
-      document.getElementById('currentAvatar').src = SERVER_URL + data.avatar;
-    }
+    const avatar = data.avatar ? SERVER_URL + data.avatar : 'https://via.placeholder.com/100';
+    document.getElementById('currentAvatar').src = avatar;
   }
 }
 
@@ -21,11 +20,14 @@ document.getElementById('profileForm').onsubmit = async e => {
     avatarData = b64.split(',')[1];
     avatarName = file.name;
   }
-  await fetch(`${SERVER_URL}/profile`, {
+  const resp = await fetch(`${SERVER_URL}/profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ about, avatarData, avatarName })
   });
+  const result = await resp.json();
+  const newAvatar = result.avatar ? SERVER_URL + result.avatar : 'https://via.placeholder.com/100';
+  document.getElementById('currentAvatar').src = newAvatar;
   alert('Profile saved!');
 };
 

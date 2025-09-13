@@ -15,6 +15,10 @@ const chatStatusEl = document.getElementById('chatStatus');
 const chatAvatarEl = document.getElementById('chatAvatar');
 const unread = {};
 
+function generateId() {
+  return Date.now().toString() + Math.random().toString(36).slice(2,8);
+}
+
 async function init() {
   const res = await fetch(`${SERVER_URL}/me`);
   if (res.status !== 200) {
@@ -23,7 +27,8 @@ async function init() {
   }
   const data = await res.json();
   username = data.username;
-  if (data.avatar) myAvatar.src = SERVER_URL + data.avatar;
+  const myAv = data.avatar ? SERVER_URL + data.avatar : 'https://via.placeholder.com/40';
+  myAvatar.src = myAv;
   socket = io(SERVER_URL, { extraHeaders: { 'x-username': username } });
   socket.on('message', onMessage);
   socket.on('status', onStatus);
@@ -51,6 +56,7 @@ function onStatus(update) {
     const statusSpan = el.querySelector('.status');
     if (update.status === 'delivered') statusSpan.textContent = '✔';
     if (update.status === 'read') statusSpan.textContent = '✔✔';
+    if (update.status === 'sent') statusSpan.textContent = '';
   }
 }
 
@@ -72,8 +78,16 @@ function addConversation(user) {
   if (document.getElementById('conv-' + user)) return;
   const li = document.createElement('li');
   li.id = 'conv-' + user;
-  li.textContent = user;
-  li.onclick = () => startChat(user);
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = user;
+  nameSpan.className = 'user-name';
+  nameSpan.onclick = () => startChat(user);
+  const profBtn = document.createElement('button');
+  profBtn.textContent = 'Profile';
+  profBtn.className = 'profile-btn';
+  profBtn.onclick = e => { e.stopPropagation(); showProfile(user); };
+  li.appendChild(nameSpan);
+  li.appendChild(profBtn);
   conversationsUl.appendChild(li);
 }
 
@@ -121,8 +135,16 @@ document.getElementById('searchBtn').onclick = async () => {
   resultsUl.innerHTML = '';
   users.forEach(u => {
     const li = document.createElement('li');
-    li.textContent = u;
-    li.onclick = () => startChat(u);
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = u;
+    nameSpan.className = 'user-name';
+    nameSpan.onclick = () => startChat(u);
+    const profBtn = document.createElement('button');
+    profBtn.textContent = 'Profile';
+    profBtn.className = 'profile-btn';
+    profBtn.onclick = e => { e.stopPropagation(); showProfile(u); };
+    li.appendChild(nameSpan);
+    li.appendChild(profBtn);
     resultsUl.appendChild(li);
   });
 };
@@ -149,22 +171,27 @@ document.getElementById('messageInput').addEventListener('keypress', e => {
 function sendMessage() {
   if (!currentChat) return;
   const input = document.getElementById('messageInput');
-  const content = input.value.trim();
-  if (content) {
-    const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'text', content, timestamp: Date.now(), status: '' };
+  const fileInput = document.getElementById('fileInput');
+  const text = input.value.trim();
+  const file = fileInput.files[0];
+  if (!text && !file) return;
+
+  if (text) {
+    const id = generateId();
+    const msg = { id, from: username, to: currentChat, type: 'text', content: text, timestamp: Date.now(), status: 'sent' };
     appendMessage(msg);
-    socket.emit('message', { to: currentChat, content, type: 'text' });
+    socket.emit('message', { id, to: currentChat, type: 'text', content: text });
     input.value = '';
   }
-  const fileInput = document.getElementById('fileInput');
-  const file = fileInput.files[0];
+
   if (file) {
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = e => {
       const base64 = e.target.result.split(',')[1];
-      const msg = { id: Date.now().toString(), from: username, to: currentChat, type: 'file', filename: file.name, fileType: file.type, file: e.target.result, timestamp: Date.now(), status: '' };
+      const id = generateId();
+      const msg = { id, from: username, to: currentChat, type: 'file', filename: file.name, fileType: file.type, file: e.target.result, timestamp: Date.now(), status: 'sent' };
       appendMessage(msg);
-      socket.emit('message', { to: currentChat, type: 'file', filename: file.name, fileType: file.type, fileData: base64 });
+      socket.emit('message', { id, to: currentChat, type: 'file', filename: file.name, fileType: file.type, fileData: base64 });
     };
     reader.readAsDataURL(file);
     fileInput.value = '';
@@ -205,8 +232,8 @@ async function showProfile(user) {
   document.getElementById('overlayName').textContent = data.username;
   document.getElementById('overlayAbout').textContent = data.about || '';
   document.getElementById('overlayCreated').textContent = 'Joined: ' + new Date(data.createdAt).toLocaleString();
-  if (data.avatar) document.getElementById('overlayAvatar').src = SERVER_URL + data.avatar;
-  else document.getElementById('overlayAvatar').src = '';
+  const av = data.avatar ? SERVER_URL + data.avatar : 'https://via.placeholder.com/100';
+  document.getElementById('overlayAvatar').src = av;
   document.getElementById('profileOverlay').style.display = 'flex';
 }
 
@@ -214,7 +241,7 @@ async function loadProfileForChat(user) {
   const res = await fetch(`${SERVER_URL}/profile/${user}`);
   if (res.status !== 200) return;
   const data = await res.json();
-  if (data.avatar) chatAvatarEl.src = SERVER_URL + data.avatar; else chatAvatarEl.src = '';
+  chatAvatarEl.src = data.avatar ? SERVER_URL + data.avatar : 'https://via.placeholder.com/40';
   updateStatusText(data);
 }
 

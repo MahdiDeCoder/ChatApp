@@ -150,7 +150,7 @@ io.on('connection', socket => {
   });
 
   socket.on('message', data => {
-    const { to, content, type, filename, fileData, fileType } = data;
+    const { id, to, content, type, filename, fileData, fileType } = data;
     const from = username;
     let filePath = null;
     if (type === 'file' && fileData) {
@@ -158,19 +158,29 @@ io.on('connection', socket => {
       filePath = path.join(UPLOAD_DIR, safeName);
       fs.writeFileSync(filePath, Buffer.from(fileData, 'base64'));
     }
-    const id = uuidv4();
-    const msg = { id, from, to, type, content, filename, fileType, file: filePath ? '/uploads/' + path.basename(filePath) : null, timestamp: Date.now(), status: 'sent' };
+    const msgId = id || uuidv4();
+    const status = userSockets.has(to) ? 'delivered' : 'sent';
+    const msg = {
+      id: msgId,
+      from,
+      to,
+      type,
+      content,
+      filename,
+      fileType,
+      file: filePath ? '/uploads/' + path.basename(filePath) : null,
+      timestamp: Date.now(),
+      status
+    };
     const messages = readJSON(MESSAGES_FILE);
     messages.push(msg);
     writeJSON(MESSAGES_FILE, messages);
 
     const toSocket = userSockets.get(to);
     if (toSocket) {
-      msg.status = 'delivered';
-      writeJSON(MESSAGES_FILE, messages);
       toSocket.emit('message', msg);
-      socket.emit('status', { id, status: 'delivered' });
     }
+    socket.emit('status', { id: msgId, status });
   });
 
   socket.on('read', data => {
