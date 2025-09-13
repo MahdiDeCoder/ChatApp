@@ -1,8 +1,22 @@
-:root {
+:root.theme-default {
   --primary: #ff9800;
   --secondary: #1976d2;
   --light-primary: #ffe0b2;
   --light-secondary: #bbdefb;
+}
+
+:root.theme-dark {
+  --primary: #424242;
+  --secondary: #90caf9;
+  --light-primary: #616161;
+  --light-secondary: #e0e0e0;
+}
+
+:root.theme-green {
+  --primary: #4caf50;
+  --secondary: #009688;
+  --light-primary: #c8e6c9;
+  --light-secondary: #b2dfdb;
 }
 
 body {
@@ -121,8 +135,8 @@ input[type="file"] {
 
 .message {
   margin: 5px;
-  padding: 5px 10px;
-  border-radius: 5px;
+  padding: 8px 12px;
+  border-radius: 8px;
   display: inline-block;
   max-width: 70%;
   word-break: break-word;
@@ -184,6 +198,9 @@ input[type="file"] {
 
 #messageInput {
   flex: 1;
+  border: 2px solid var(--secondary);
+  border-radius: 20px;
+  padding: 8px 12px;
 }
 
 #emojiPanel {
@@ -237,6 +254,17 @@ input[type="file"] {
 .chat-status {
   font-size: 0.8em;
   color: #555;
+}
+
+.logout-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.unread-count {
+  color: var(--secondary);
+  margin-left: 4px;
 }
 
 .back-btn {

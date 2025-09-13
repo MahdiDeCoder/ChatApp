@@ -15,6 +15,10 @@ const chatStatusEl = document.getElementById('chatStatus');
 const chatAvatarEl = document.getElementById('chatAvatar');
 const unread = {};
 
+document.getElementById('logoutBtn').onclick = () => {
+  window.location = `${SERVER_URL}/logout`;
+};
+
 function generateId() {
   return Date.now().toString() + Math.random().toString(36).slice(2,8);
 }
@@ -36,7 +40,7 @@ async function init() {
 
   const convRes = await fetch(`${SERVER_URL}/conversations`);
   const convos = await convRes.json();
-  convos.forEach(addConversation);
+  convos.forEach(c => addConversation(c.user, c.unread));
 }
 
 function onMessage(msg) {
@@ -44,9 +48,10 @@ function onMessage(msg) {
     appendMessage(msg);
     socket.emit('read', { ids: [msg.id] });
   } else {
-    if (!unread[msg.from]) unread[msg.from] = [];
-    unread[msg.from].push(msg);
-    showNotification(msg);
+  if (!unread[msg.from]) unread[msg.from] = [];
+  unread[msg.from].push(msg);
+  addConversation(msg.from, unread[msg.from].length);
+  showNotification(msg);
   }
 }
 
@@ -61,7 +66,6 @@ function onStatus(update) {
 }
 
 function showNotification(msg) {
-  addConversation(msg.from);
   let note = document.getElementById('note-' + msg.from);
   const preview = msg.type === 'text' ? msg.content : `[File] ${msg.filename}`;
   if (!note) {
@@ -74,21 +78,28 @@ function showNotification(msg) {
   note.textContent = `New message from ${msg.from}: ${preview}`;
 }
 
-function addConversation(user) {
-  if (document.getElementById('conv-' + user)) return;
-  const li = document.createElement('li');
-  li.id = 'conv-' + user;
-  const nameSpan = document.createElement('span');
-  nameSpan.textContent = user;
-  nameSpan.className = 'user-name';
-  nameSpan.onclick = () => startChat(user);
-  const profBtn = document.createElement('button');
-  profBtn.textContent = 'Profile';
-  profBtn.className = 'profile-btn';
-  profBtn.onclick = e => { e.stopPropagation(); showProfile(user); };
-  li.appendChild(nameSpan);
-  li.appendChild(profBtn);
-  conversationsUl.appendChild(li);
+function addConversation(user, count = 0) {
+  let li = document.getElementById('conv-' + user);
+  if (!li) {
+    li = document.createElement('li');
+    li.id = 'conv-' + user;
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = user;
+    nameSpan.className = 'user-name';
+    nameSpan.onclick = () => startChat(user);
+    const countSpan = document.createElement('span');
+    countSpan.className = 'unread-count';
+    const profBtn = document.createElement('button');
+    profBtn.textContent = 'Profile';
+    profBtn.className = 'profile-btn';
+    profBtn.onclick = e => { e.stopPropagation(); showProfile(user); };
+    li.appendChild(nameSpan);
+    li.appendChild(countSpan);
+    li.appendChild(profBtn);
+    conversationsUl.appendChild(li);
+  }
+  const countSpan = li.querySelector('.unread-count');
+  countSpan.textContent = count > 0 ? ` (${count})` : '';
 }
 
 function appendMessage(msg) {
@@ -150,7 +161,7 @@ document.getElementById('searchBtn').onclick = async () => {
 };
 
 function startChat(user) {
-  addConversation(user);
+  addConversation(user, 0);
   currentChat = user;
   chatDiv.classList.remove('hidden');
   convoListDiv.classList.add('hidden');

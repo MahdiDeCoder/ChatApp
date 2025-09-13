@@ -3,18 +3,20 @@
 Simple chat application with login, user search, text and file messaging, emojis, and delivery/read receipts. Built with Express and Socket.io.
 
 ## Features
-- Login with username
-- Login required to access chat and uploads
+- Login with username and avatar
+- Login required to access chat, profiles, and uploads
 - Search users by username
 - Real-time chat with text, images/files, and emojis
 - Real-time delivery (✔) and read (✔✔) receipts
-- Live notifications for incoming messages
+- Live notifications for incoming messages and unread counts in the conversation list
 - Conversation list showing past contacts
 - Online status with last-seen timestamps
 - Timestamps under each message
 - User profiles with avatar and bio
 - Profile picture shown in chat and clickable profiles to view details
 - View other users' profiles from conversation and search lists with default avatars if none uploaded
+- Theme selector to choose among multiple color themes
+- Logout option
 - Persistent storage of users and messages
 - Modern orange/blue gradient theme applied across all pages for a unified look
 

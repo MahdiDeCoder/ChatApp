@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
+const multer = require('multer');
 const app = express();
 const server = http.createServer(app);
 const { Server } = require('socket.io');
@@ -28,6 +29,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(session({ secret: 'secret-key', resave: false, saveUninitialized: true }));
 
+// Multer setup for avatar uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname)
+});
+const upload = multer({ storage });
+
 // Redirect root to login page
 app.get('/', (req, res) => {
   res.redirect('/login.html');
@@ -39,27 +47,41 @@ function requireLogin(req, res, next) {
   next();
 }
 
-// Serve chat page only if logged in
-app.get('/chat.html', requireLogin, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+// Gate HTML pages so only logged-in users can access them
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') && req.path !== '/login.html' && !req.session.username) {
+    return res.redirect('/login.html');
+  }
+  next();
 });
-// Assets for login page
+
+// Serve static assets
 app.use(express.static(path.join(__dirname, 'public')));
 // Protect uploaded files
 app.use('/uploads', requireLogin, express.static(UPLOAD_DIR));
 
-app.post('/login', (req, res) => {
+app.post('/login', upload.single('avatar'), (req, res) => {
   const { username } = req.body;
   if (!username) return res.status(400).send('Username required');
-  req.session.username = username;
+
   let users = readJSON(USERS_FILE);
   let user = users.find(u => u.username === username);
+
+  // Require avatar for new users
+  if (!user && !req.file) return res.status(400).send('Avatar required');
+
   if (!user) {
     user = { username, createdAt: Date.now(), about: '', avatar: null, lastSeen: Date.now(), online: true };
     users.push(user);
   } else {
     user.online = true;
   }
+
+  if (req.file) {
+    user.avatar = '/uploads/' + req.file.filename;
+  }
+
+  req.session.username = username;
   writeJSON(USERS_FILE, users);
   res.redirect('/chat.html');
 });
@@ -89,12 +111,21 @@ app.get('/messages/:withUser', requireLogin, (req, res) => {
 app.get('/conversations', requireLogin, (req, res) => {
   const username = req.session.username;
   const messages = readJSON(MESSAGES_FILE);
-  const users = new Set();
+  const convMap = new Map(); // user -> unread count
   messages.forEach(m => {
-    if (m.from === username) users.add(m.to);
-    if (m.to === username) users.add(m.from);
+    if (m.from === username) {
+      if (!convMap.has(m.to)) convMap.set(m.to, 0);
+    } else if (m.to === username) {
+      if (!convMap.has(m.from)) convMap.set(m.from, 0);
+      if (m.status !== 'read') convMap.set(m.from, convMap.get(m.from) + 1);
+    }
   });
-  res.json(Array.from(users));
+  const result = Array.from(convMap.entries()).map(([user, unread]) => ({ user, unread }));
+  res.json(result);
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/login.html'));
 });
 
 const userSockets = new Map(); // username -> socket

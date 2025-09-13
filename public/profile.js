@@ -8,6 +8,8 @@ async function loadProfile() {
     const avatar = data.avatar ? SERVER_URL + data.avatar : 'https://via.placeholder.com/100';
     document.getElementById('currentAvatar').src = avatar;
   }
+  const theme = localStorage.getItem('theme') || 'theme-default';
+  document.getElementById('themeSelect').value = theme;
 }
 
 document.getElementById('profileForm').onsubmit = async e => {
@@ -39,5 +41,14 @@ function fileToBase64(file) {
     reader.readAsDataURL(file);
   });
 }
+
+document.getElementById('themeSelect').onchange = e => {
+  localStorage.setItem('theme', e.target.value);
+  document.documentElement.className = e.target.value;
+};
+
+document.getElementById('logoutBtn').onclick = () => {
+  window.location = `${SERVER_URL}/logout`;
+};
 
 loadProfile();
