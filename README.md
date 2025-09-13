@@ -15,6 +15,7 @@ Simple chat application with login, user search, text and file messaging, emojis
 - User profiles with avatar and bio
 - Profile picture shown in chat and clickable profiles to view details
 - Persistent storage of users and messages
+- Modern orange/blue gradient theme applied across all pages for a unified look
 
 ## Setup
 1. Install dependencies:

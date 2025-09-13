@@ -130,9 +130,9 @@ document.getElementById('searchBtn').onclick = async () => {
 function startChat(user) {
   addConversation(user);
   currentChat = user;
-  chatDiv.style.display = 'block';
-  convoListDiv.style.display = 'none';
-  searchDiv.style.display = 'none';
+  chatDiv.classList.remove('hidden');
+  convoListDiv.classList.add('hidden');
+  searchDiv.classList.add('hidden');
   chatNameEl.textContent = user;
   const note = document.getElementById('note-' + user);
   if (note) notificationsDiv.removeChild(note);
@@ -188,9 +188,9 @@ document.querySelectorAll('.emoji').forEach(e => {
 chatNameEl.onclick = () => { if (currentChat) showProfile(currentChat); };
 chatAvatarEl.onclick = () => { if (currentChat) showProfile(currentChat); };
 document.getElementById('backBtn').onclick = () => {
-  chatDiv.style.display = 'none';
-  convoListDiv.style.display = 'block';
-  searchDiv.style.display = 'block';
+  chatDiv.classList.add('hidden');
+  convoListDiv.classList.remove('hidden');
+  searchDiv.classList.remove('hidden');
   currentChat = null;
 };
 
