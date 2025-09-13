@@ -1,4 +1,4 @@
-const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = window.location.origin;
 
 async function loadProfile() {
   const res = await fetch(`${SERVER_URL}/profile`);

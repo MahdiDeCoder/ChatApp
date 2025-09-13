@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <title>ChatApp Login</title>
-  <link rel="stylesheet" href="http://localhost:3000/style.css" />
-  <script src="http://localhost:3000/theme.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
 </head>
 <body class="centered-page">
   <div class="card">
     <h2>Welcome to ChatApp!</h2>
-    <form action="http://localhost:3000/login" method="post" enctype="multipart/form-data">
+    <form action="/login" method="post" enctype="multipart/form-data">
       <input type="text" name="username" placeholder="Enter username" required />
       <input type="file" name="avatar" accept="image/*" required />
       <button type="submit">Login</button>
