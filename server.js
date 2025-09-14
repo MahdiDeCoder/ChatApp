@@ -1,0 +1,260 @@
+const express = require('express');
+const session = require('express-session');
+const bodyParser = require('body-parser');
+const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
+const http = require('http');
+const multer = require('multer');
+const app = express();
+const server = http.createServer(app);
+const { Server } = require('socket.io');
+const io = new Server(server);
+
+const DATA_DIR = path.join(__dirname, 'data');
+const UPLOAD_DIR = path.join(__dirname, 'uploads');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const MESSAGES_FILE = path.join(DATA_DIR, 'messages.json');
+
+// Ensure directories exist
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, JSON.stringify([]));
+if (!fs.existsSync(MESSAGES_FILE)) fs.writeFileSync(MESSAGES_FILE, JSON.stringify([]));
+
+const readJSON = (file) => JSON.parse(fs.readFileSync(file));
+const writeJSON = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2));
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(session({ secret: 'secret-key', resave: false, saveUninitialized: true }));
+
+// Multer setup for avatar uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => cb(null, Date.now() + '_' + file.originalname)
+});
+const upload = multer({ storage });
+
+// Redirect root to login page
+app.get('/', (req, res) => {
+  res.redirect('/login.html');
+});
+
+// Helper to ensure user is logged in
+function requireLogin(req, res, next) {
+  if (!req.session.username) return res.redirect('/login.html');
+  next();
+}
+
+// Gate HTML pages so only logged-in users can access them
+app.use((req, res, next) => {
+  if (req.path.endsWith('.html') && req.path !== '/login.html' && !req.session.username) {
+    return res.redirect('/login.html');
+  }
+  next();
+});
+
+// Serve static assets
+app.use(express.static(path.join(__dirname, 'public')));
+// Protect uploaded files
+app.use('/uploads', requireLogin, express.static(UPLOAD_DIR));
+
+app.post('/login', upload.single('avatar'), (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).send('Username required');
+
+  let users = readJSON(USERS_FILE);
+  let user = users.find(u => u.username === username);
+
+  // Require avatar for new users
+  if (!user && !req.file) return res.status(400).send('Avatar required');
+
+  if (!user) {
+    user = { username, createdAt: Date.now(), about: '', avatar: null, lastSeen: Date.now(), online: true };
+    users.push(user);
+  } else {
+    user.online = true;
+  }
+
+  if (req.file) {
+    user.avatar = '/uploads/' + req.file.filename;
+  }
+
+  req.session.username = username;
+  writeJSON(USERS_FILE, users);
+  res.redirect('/chat.html');
+});
+
+app.get('/me', (req, res) => {
+  if (!req.session.username) return res.status(401).json({});
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.username === req.session.username);
+  res.json({ username: req.session.username, avatar: user ? user.avatar : null });
+});
+
+app.get('/users', requireLogin, (req, res) => {
+  const search = (req.query.search || '').toLowerCase();
+  const users = readJSON(USERS_FILE)
+    .filter(u => u.username.toLowerCase().includes(search) && u.username !== req.session.username)
+    .map(u => u.username);
+  res.json(users);
+});
+
+app.get('/messages/:withUser', requireLogin, (req, res) => {
+  const { withUser } = req.params;
+  const username = req.session.username;
+  const messages = readJSON(MESSAGES_FILE).filter(m => (m.from === username && m.to === withUser) || (m.from === withUser && m.to === username));
+  res.json(messages);
+});
+
+app.get('/conversations', requireLogin, (req, res) => {
+  const username = req.session.username;
+  const messages = readJSON(MESSAGES_FILE);
+  const convMap = new Map(); // user -> unread count
+  messages.forEach(m => {
+    if (m.from === username) {
+      if (!convMap.has(m.to)) convMap.set(m.to, 0);
+    } else if (m.to === username) {
+      if (!convMap.has(m.from)) convMap.set(m.from, 0);
+      if (m.status !== 'read') convMap.set(m.from, convMap.get(m.from) + 1);
+    }
+  });
+  const result = Array.from(convMap.entries()).map(([user, unread]) => ({ user, unread }));
+  res.json(result);
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/login.html'));
+});
+
+const userSockets = new Map(); // username -> socket
+
+function updateStatus(username, online) {
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.username === username);
+  if (user) {
+    user.online = online;
+    if (!online) user.lastSeen = Date.now();
+    writeJSON(USERS_FILE, users);
+  }
+  return user;
+}
+
+io.use((socket, next) => {
+  const req = socket.request;
+  const sess = req.headers.cookie;
+  // Simple session extraction
+  if (!sess) return next(new Error('No session'));
+  const match = /connect\.sid=s%3A([^\.]+)/.exec(sess);
+  if (!match) return next(new Error('Bad session'));
+  next();
+});
+
+io.on('connection', socket => {
+  const username = socket.handshake.headers['x-username'];
+  if (!username) {
+    socket.disconnect();
+    return;
+  }
+  userSockets.set(username, socket);
+  const statusUser = updateStatus(username, true);
+  io.emit('presence', { username, online: true, lastSeen: statusUser ? statusUser.lastSeen : Date.now() });
+
+  // Mark any offline messages as delivered upon connection
+  const offline = readJSON(MESSAGES_FILE);
+  let offlineChanged = false;
+  offline.forEach(m => {
+    if (m.to === username && m.status === 'sent') {
+      m.status = 'delivered';
+      offlineChanged = true;
+      const fromSocket = userSockets.get(m.from);
+      if (fromSocket) fromSocket.emit('status', { id: m.id, status: 'delivered' });
+    }
+  });
+  if (offlineChanged) writeJSON(MESSAGES_FILE, offline);
+
+  socket.on('disconnect', () => {
+    userSockets.delete(username);
+    const u = updateStatus(username, false);
+    io.emit('presence', { username, online: false, lastSeen: u ? u.lastSeen : Date.now() });
+  });
+
+  socket.on('message', data => {
+    const { id, to, content, type, filename, fileData, fileType } = data;
+    const from = username;
+    let filePath = null;
+    if (type === 'file' && fileData) {
+      const safeName = Date.now() + '_' + filename;
+      filePath = path.join(UPLOAD_DIR, safeName);
+      fs.writeFileSync(filePath, Buffer.from(fileData, 'base64'));
+    }
+    const msgId = id || uuidv4();
+    const status = userSockets.has(to) ? 'delivered' : 'sent';
+    const msg = {
+      id: msgId,
+      from,
+      to,
+      type,
+      content,
+      filename,
+      fileType,
+      file: filePath ? '/uploads/' + path.basename(filePath) : null,
+      timestamp: Date.now(),
+      status
+    };
+    const messages = readJSON(MESSAGES_FILE);
+    messages.push(msg);
+    writeJSON(MESSAGES_FILE, messages);
+
+    const toSocket = userSockets.get(to);
+    if (toSocket) {
+      toSocket.emit('message', msg);
+    }
+    socket.emit('status', { id: msgId, status });
+  });
+
+  socket.on('read', data => {
+    const { ids } = data; // array of message ids
+    const messages = readJSON(MESSAGES_FILE);
+    let changed = false;
+    ids.forEach(id => {
+      const msg = messages.find(m => m.id === id);
+      if (msg && msg.status !== 'read') {
+        msg.status = 'read';
+        changed = true;
+        const fromSocket = userSockets.get(msg.from);
+        if (fromSocket) fromSocket.emit('status', { id, status: 'read' });
+      }
+    });
+    if (changed) writeJSON(MESSAGES_FILE, messages);
+  });
+});
+
+app.get('/profile/:user?', requireLogin, (req, res) => {
+  const username = req.params.user || req.session.username;
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.username === username);
+  if (!user) return res.status(404).json({});
+  res.json({ username: user.username, createdAt: user.createdAt, about: user.about, avatar: user.avatar, lastSeen: user.lastSeen, online: user.online });
+});
+
+app.post('/profile', requireLogin, (req, res) => {
+  const { about, avatarData, avatarName } = req.body;
+  const users = readJSON(USERS_FILE);
+  const user = users.find(u => u.username === req.session.username);
+  if (!user) return res.status(404).send('User not found');
+  if (typeof about === 'string') user.about = about;
+  if (avatarData && avatarName) {
+    const safeName = Date.now() + '_' + avatarName;
+    const filePath = path.join(UPLOAD_DIR, safeName);
+    fs.writeFileSync(filePath, Buffer.from(avatarData, 'base64'));
+    user.avatar = '/uploads/' + path.basename(filePath);
+  }
+  writeJSON(USERS_FILE, users);
+  res.json({ success: true, avatar: user.avatar, about: user.about });
+});
+
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
+server.listen(PORT, HOST, () => console.log(`Server running at http://${HOST}:${PORT}`));

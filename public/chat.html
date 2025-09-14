@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>ChatApp</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
+</head>
+<body>
+  <img id="myAvatar" class="avatar" onclick="location.href='profile.html'" />
+  <button id="logoutBtn" class="logout-btn">Logout</button>
+  <div id="app">
+    <div id="notifications"></div>
+    <div id="convoList">
+      <h3>Conversations</h3>
+      <ul id="conversations"></ul>
+    </div>
+    <div id="search">
+      <input id="searchBox" placeholder="Search users" />
+      <button id="searchBtn">Search</button>
+      <ul id="results"></ul>
+    </div>
+    <div id="chat" class="hidden">
+      <div id="chatHeader">
+        <button id="backBtn" class="back-btn">Back</button>
+        <div id="chatUserInfo">
+          <img id="chatAvatar" class="avatar" />
+          <div>
+            <div id="chatName"></div>
+            <div id="chatStatus" class="chat-status"></div>
+          </div>
+        </div>
+      </div>
+      <div id="messages"></div>
+      <div id="inputArea">
+        <input id="messageInput" placeholder="Type a message" />
+        <button id="emojiBtn">😀</button>
+        <input type="file" id="fileInput" />
+        <button id="sendBtn">Send</button>
+      </div>
+      <div id="emojiPanel" style="display:none;">
+        <span class="emoji">😀</span><span class="emoji">😂</span><span class="emoji">👍</span><span class="emoji">❤️</span><span class="emoji">😢</span><span class="emoji">😮</span><span class="emoji">😡</span><span class="emoji">😍</span><span class="emoji">🙏</span><span class="emoji">🎉</span><span class="emoji">😎</span><span class="emoji">🤔</span>
+      </div>
+    </div>
+  </div>
+  <div id="profileOverlay">
+    <div id="profileCard">
+      <img id="overlayAvatar" class="avatar-large" />
+      <h3 id="overlayName"></h3>
+      <p id="overlayAbout"></p>
+      <p id="overlayCreated"></p>
+      <button id="closeProfile">Close</button>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

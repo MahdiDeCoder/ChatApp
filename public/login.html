@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>ChatApp Login</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="theme.js"></script>
+</head>
+<body class="centered-page">
+  <div class="card">
+    <h2>Welcome to ChatApp!</h2>
+    <form action="/login" method="post" enctype="multipart/form-data">
+      <input type="text" name="username" placeholder="Enter username" required />
+      <input type="file" name="avatar" accept="image/*" required />
+      <button type="submit">Login</button>
+    </form>
+  </div>
+</body>
+</html>
